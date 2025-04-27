@@ -1,0 +1,44 @@
+version: '3.4'
+
+name: fourth_services
+services:
+  webapi_project:
+    container_name: webapi
+    build:
+      context: ./src
+      dockerfile: Fourth.Api/Dockerfile
+    environment:
+      ConnectionStrings__DefaultConnectionString: "Server=docker_sqlserver;Database=Fourth;User Id=SA;Password=Password123;TrustServerCertificate=True"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - docker_sqlserver
+    networks:
+      - app-network
+      
+  mvc_project:
+    container_name: mvc
+    build:
+      context: ./src
+      dockerfile: Fourth.Mvc/Dockerfile
+    ports:
+      - "3000:8080"
+    networks:
+      - app-network
+
+  docker_sqlserver:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    container_name: sql_server2022
+    ports:
+      - "1433:1433" 
+    environment:
+      - ACCEPT_EULA=y
+      - SA_PASSWORD=Password123
+    volumes:
+      - ./mssqldata:/var/opt/mssql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

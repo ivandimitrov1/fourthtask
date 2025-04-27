@@ -1,0 +1,102 @@
+﻿@model CustomerDetailsViewModel
+@{
+	ViewData["Title"] = "Customer";
+}
+
+<div class="container">
+	<h2>@ViewBag.Title</h2>
+	<input type="hidden" id="customerId" value="@Model.CustomerId" />
+
+	<div id="customerDetailsContainer" class="alert alert-info" role="alert">
+		Loading customer details...
+	</div>
+
+	<h2>Customer Orders</h2>
+	<table id="customerOrders" class="table table-striped table-bordered">
+		<thead>
+			<tr>
+				<th>Order id</th>
+				<th>Order total</th>
+				<th>Additional Info</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td colspan="4" class="text-center">Loading...</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+
+
+@section scripts {
+	<script>
+		$(document).ready(function () {
+
+			var customerId = $("#customerId").val();
+
+			$.ajax({
+				url: '@Model.WebApiBaseUrl/api/customers/' + customerId,
+				type: 'GET',
+				dataType: 'json',
+				success: function (response) {
+
+					var customerDetails = response.data;
+					if (customerDetails) {
+						var detailsHtml = `
+											<h3>${customerDetails.contactName}</h3>
+											<p><strong>Address:</strong> ${customerDetails.address}</p>
+											<p><strong>Company name:</strong> ${customerDetails.companyName}</p>
+											<p><strong>Contact title:</strong> ${customerDetails.contactTitle}</p>
+											<p><strong>City:</strong> ${customerDetails.city}</p>
+											`;
+						$("#customerDetailsContainer").removeClass("alert-info").addClass("alert-success").html(detailsHtml); // Update the container
+					}
+					else {
+						var errorMessage = data && data.error ? data.error : "Failed to retrieve customer details.";
+						$("#customerDetailsContainer").removeClass("alert-info").addClass("alert-danger").text(errorMessage);
+					}
+				},
+				error: function (xhr, status, error) {
+					// Handle AJAX errors (e.g., network error, 500 Internal Server Error).
+					// Important:  xhr.responseText may contain sensitive information in some cases.  Log it on the server,
+					//            but display a generic error message to the user.
+					console.error("AJAX Error:", status, error, xhr.responseText); // Log the error for debugging
+					$("#customerDetailsContainer").removeClass("alert-info").addClass("alert-danger").text("An error occurred while communicating with the server.");
+				}
+			});
+
+			$.ajax({
+				url: '@Model.WebApiBaseUrl/api/customers/' + customerId + '/orders',
+				type: 'GET',
+				dataType: 'json',
+				success: function (response) {
+					// Clear the table body
+					$('#customerOrders tbody').empty();
+
+					var orders = response.data;
+					if (orders && orders.length > 0) {
+						// Loop through the data and append rows to the table
+						$.each(orders, function (index, order) {
+							var row = '<tr>' +
+								'<td>' + order.orderId + '</td>' +
+								'<td>' + order.total + '</td>' +
+								'<td>' + order.information + '</td>' +
+								'</tr>';
+							$('#customerOrders tbody').append(row);
+						});
+					} else {
+						// Display a message if no data is returned
+						$('#customerOrders tbody').append('<tr><td colspan="4" class="text-center">No data available.</td></tr>');
+					}
+				},
+				error: function (xhr, status, error) {
+					// Handle errors, e.g., display an error message
+					console.error("Error fetching data:", status, error);
+					$('#customerOrders tbody').empty().append('<tr><td colspan="4" class="text-center text-danger">Error loading data.  Please check the console for details.</td></tr>');
+				}
+			});
+
+		});
+	</script>
+}
